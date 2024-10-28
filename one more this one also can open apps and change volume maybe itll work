@@ -1,0 +1,111 @@
+const btn = document.querySelector('.talk');
+const content = document.querySelector('.content');
+
+let todoList = [];  // To-do list array
+
+function speak(text) {
+    const text_speak = new SpeechSynthesisUtterance(text);
+    text_speak.rate = 1;
+    text_speak.volume = 1;
+    text_speak.pitch = 1;
+    window.speechSynthesis.speak(text_speak);
+}
+
+function wishMe() {
+    const day = new Date();
+    const hour = day.getHours();
+
+    if (hour >= 0 && hour < 12) {
+        speak("Good Morning Boss...");
+    } else if (hour >= 12 && hour < 17) {
+        speak("Good Afternoon Master...");
+    } else {
+        speak("Good Evening Sir...");
+    }
+}
+
+window.addEventListener('load', () => {
+    speak("Initializing JARVIS...");
+    wishMe();
+});
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+
+recognition.onresult = (event) => {
+    const currentIndex = event.resultIndex;
+    const transcript = event.results[currentIndex][0].transcript;
+    content.textContent = transcript;
+    takeCommand(transcript.toLowerCase());
+};
+
+btn.addEventListener('click', () => {
+    content.textContent = "Listening...";
+    recognition.start();
+});
+
+function takeCommand(message) {
+    if (message.includes('hey') || message.includes('hello')) {
+        speak("Hello Sir, How may I help you?");
+    } else if (message.includes("open google")) {
+        window.open("https://google.com", "_blank");
+        speak("Opening Google...");
+    } else if (message.includes("open youtube")) {
+        window.open("https://youtube.com", "_blank");
+        speak("Opening YouTube...");
+    } else if (message.includes("add task")) {
+        const task = message.replace("add task", "").trim();
+        todoList.push(task);
+        speak(`Task added: ${task}`);
+    } else if (message.includes("show tasks")) {
+        const tasks = todoList.length ? todoList.join(", ") : "You have no tasks.";
+        speak(`Your tasks are: ${tasks}`);
+    } else if (message.includes("clear tasks")) {
+        todoList = [];
+        speak("All tasks cleared.");
+    } else if (message.includes("set alarm")) {
+        setAlarm(message);
+    } else if (message.includes("increase volume")) {
+        changeVolume(10);
+    } else if (message.includes("decrease volume")) {
+        changeVolume(-10);
+    } else if (message.includes("mute")) {
+        changeVolume(0, true);
+    } else {
+        window.open(`https://www.google.com/search?q=${message.replace(" ", "+")}`, "_blank");
+        speak("I found some information for " + message + " on Google.");
+    }
+}
+
+function changeVolume(levelChange, mute = false) {
+    const audio = new Audio();
+    if (mute) {
+        audio.volume = 0;
+        speak("Volume muted.");
+    } else {
+        let newVolume = Math.min(Math.max(audio.volume + levelChange / 100, 0), 1);
+        audio.volume = newVolume;
+        speak(`Volume set to ${Math.round(newVolume * 100)}%`);
+    }
+}
+
+function setAlarm(message) {
+    const time = message.match(/\d{1,2}:\d{2}/);  // Matches "hh:mm" format
+    if (time) {
+        const alarmTime = time[0];
+        const alarmDate = new Date();
+        const [hour, minute] = alarmTime.split(':').map(num => parseInt(num));
+        alarmDate.setHours(hour, minute, 0);
+        const now = new Date();
+        
+        const delay = alarmDate - now;
+        if (delay > 0) {
+            setTimeout(() => speak("This is your alarm reminder!"), delay);
+            speak(`Alarm set for ${alarmTime}`);
+        } else {
+            speak("The time you set has already passed.");
+        }
+    } else {
+        speak("Please specify a valid time in the format hh:mm.");
+    }
+}
